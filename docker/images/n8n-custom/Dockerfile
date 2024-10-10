@@ -32,13 +32,19 @@ COPY --from=builder /compiled /usr/local/lib/node_modules/n8n
 COPY docker/images/n8n/docker-entrypoint.sh /
 
 RUN \
-	cd /usr/local/lib/node_modules/n8n && \
-	npm rebuild sqlite3 && \
-	cd - && \
-	ln -s /usr/local/lib/node_modules/n8n/bin/n8n /usr/local/bin/n8n && \
-	mkdir .n8n && \
-	chown node:node .n8n
+    cd /usr/local/lib/node_modules/n8n && \
+    npm rebuild sqlite3 && \
+    cd - && \
+    ln -s /usr/local/lib/node_modules/n8n/bin/n8n /usr/local/bin/n8n && \
+    mkdir .n8n && \
+    chown node:node .n8n && \
+    apt-get update && \
+    apt-get install -y ffmpeg && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV SHELL /bin/sh
 USER node
 ENTRYPOINT ["tini", "--", "/docker-entrypoint.sh"]
+
+
