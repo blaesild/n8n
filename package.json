@@ -6,7 +6,8 @@
     "node": ">=20.15",
     "pnpm": ">=9.5"
   },
-  "dependencies": {
+"dependencies": {
+  "n8n-workflow": "latest", // or specify the version you're using
   "n8n-nodes-ffmpeg": "latest",
   "n8n-nodes-elevenlabs": "latest"
   },
