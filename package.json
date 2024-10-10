@@ -7,8 +7,8 @@
     "pnpm": ">=9.5"
   },
   "dependencies": {
-    "@n8n/community-node-ffmpeg": "latest",
-    "@n8n/community-node-elevenlabs": "latest"
+  "n8n-nodes-ffmpeg": "latest",
+  "n8n-nodes-elevenlabs": "latest"
   },
   "packageManager": "pnpm@9.6.0",
   "scripts": {
