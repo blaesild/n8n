@@ -37,15 +37,13 @@ RUN \
     cd - && \
     ln -s /usr/local/lib/node_modules/n8n/bin/n8n /usr/local/bin/n8n && \
     mkdir .n8n && \
-    chown node:node .n8n && \
-# Install FFmpeg
-		apt-get update && \
-		apt-get install -y ffmpeg && \
-		apt-get clean && \
+    chown node:node .n8n 
 
-# Install community nodes
-		npm install n8n-nodes-ffmpeg n8n-nodes-elevenlabs && \
-		rm -rf /var/lib/apt/lists/*
+# Install FFmpeg
+RUN apt-get update && \
+    apt-get install -y ffmpeg && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV SHELL /bin/sh
 USER node
