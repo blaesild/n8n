@@ -22,9 +22,6 @@ RUN set -eux; \
 	find /usr/local/lib/node_modules/n8n -type f -name "*.ts" -o -name "*.js.map" -o -name "*.vue" | xargs rm -f && \
 	rm -rf /root/.npm
 
- # Install ffmpeg
-RUN apt-get update && apt-get install -y ffmpeg
-
 COPY docker-entrypoint.sh /
 
 RUN \
