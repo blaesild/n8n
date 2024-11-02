@@ -16,8 +16,9 @@ RUN mkdir -p /home/node/.n8n/custom
 # Set workdir and install community nodes
 WORKDIR /home/node/.n8n/custom
 
-# Install community nodes
+# Initialize npm and install n8n globally first
 RUN npm init -y && \
+    npm install -g n8n && \
     npm install https://github.com/n8n-ninja/n8n-nodes-elevenlabs.git && \
     npm install https://github.com/n8n-ninja/n8n-nodes-ffmpeg.git
 
@@ -27,12 +28,18 @@ RUN chown -R node:node /home/node/.n8n
 # Important: Set environment variables for custom nodes
 ENV N8N_CUSTOM_EXTENSIONS="/home/node/.n8n/custom"
 ENV NODE_PATH="/home/node/.n8n/custom/node_modules"
+ENV PATH="/home/node/.npm-global/bin:$PATH"
+ENV NPM_CONFIG_PREFIX="/home/node/.npm-global"
 
 # Switch back to the node user
 USER node
 
+# Create start script
+RUN echo "#!/bin/sh\nn8n start" > /home/node/start.sh && \
+    chmod +x /home/node/start.sh
+
 # Set the working directory back to the n8n directory
 WORKDIR /home/node
 
-# Optional: Verify custom nodes on startup
-CMD ["n8n", "start"]
+# Use the start script as the entry point
+CMD ["/home/node/start.sh"]
