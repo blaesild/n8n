@@ -2,6 +2,10 @@ FROM n8nio/n8n:latest
 
 USER root
 
+# Install bash and set it as the shell
+RUN apk add --no-cache bash
+SHELL ["/bin/bash", "-c"]
+
 # Install necessary packages
 RUN apk add --no-cache python3
 
@@ -26,4 +30,4 @@ RUN chown -R node:node /home/node/.n8n
 USER node
 
 # Command to run the check script and start n8n
-CMD python3 /home/node/check_nodes.py && n8n start
+CMD ["/bin/bash", "-c", "python3 /home/node/check_nodes.py && n8n start"]
