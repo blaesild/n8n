@@ -10,10 +10,8 @@ RUN apk update && apk add --no-cache \
     python3 \
     make \
     g++ \
-    typescript \
+    nodejs \
     npm \
-    nodejs-dev \
-    gulp \
     build-base
 
 # Install global npm packages
