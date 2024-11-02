@@ -7,6 +7,10 @@
     "pnpm": ">=9.5"
   },
   "packageManager": "pnpm@9.6.0",
+  "dependencies": {
+    "n8n-nodes-ffmpeg": "github:n8n-ninja/n8n-nodes-ffmpeg",
+    "n8n-nodes-elevenlabs": "github:n8n-ninja/n8n-nodes-elevenlabs"
+  },
   "scripts": {
     "prepare": "node scripts/prepare.mjs",
     "preinstall": "node scripts/block-npm-install.js",
