@@ -2,19 +2,13 @@ FROM n8nio/n8n:latest
 
 USER root
 
-# Install build essentials and FFmpeg
-RUN apk update && apk add --no-cache \
-    ffmpeg \
-    python3 \
-    make \
-    g++ \
-    Git
+# Install FFmpeg using apk
+RUN apk update && apk add --no-cache ffmpeg
 
-# Create necessary directories
-RUN mkdir -p /home/node/.n8n/custom && \
-    mkdir -p /home/node/.n8n/custom/node_modules
+# Create the directory for custom nodes
+RUN mkdir -p /home/node/.n8n/custom
 
-# Install community nodes
+# Install community nodes into the custom directory
 WORKDIR /home/node/.n8n/custom
 RUN npm install https://github.com/n8n-ninja/n8n-nodes-elevenlabs.git
 RUN npm install https://github.com/n8n-ninja/n8n-nodes-ffmpeg.git
