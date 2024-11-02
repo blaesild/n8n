@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: n8n
+    env: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: GENERIC_TIMEZONE
+        value: Europe/Copenhagen
+      - key: N8N_CUSTOM_EXTENSIONS
+        value: /home/node/.n8n/custom
+      - key: N8N_EDITOR_BASE_URL
+        value: https://n8n-5w7p.onrender.com
+      - key: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
+        value: "true"
+      - key: N8N_HOST
+        value: n8n-5w7p.onrender.com
+      - key: N8N_PORT
+        value: "10000"
+      - key: N8N_PROTOCOL
+        value: https
+      - key: N8N_USER_FOLDER
+        value: /home/node/.n8n
+      - key: NODE_FUNCTION_ALLOW_EXTERNAL
+        value: "*"
+      - key: NODE_PATH
+        value: /home/node/.n8n/custom/node_modules
+    disk:
+      name: n8n-data
+      mountPath: /home/node/.n8n
+      sizeGB: 10
+    healthCheckPath: /
+    port: 10000
