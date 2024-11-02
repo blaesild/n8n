@@ -14,9 +14,6 @@ RUN apk update && apk add --no-cache \
     npm \
     build-base
 
-# Install global npm packages
-RUN npm install -g typescript @types/node gulp-cli
-
 # Create and set permissions for .n8n directory
 RUN mkdir -p /home/node/.n8n && \
     chown -R node:node /home/node/.n8n
@@ -27,30 +24,32 @@ USER node
 # Set the working directory
 WORKDIR /home/node/.n8n
 
-# Initialize npm project with more complete package.json
-RUN npm init -y && \
-    npm pkg set name="@n8n/custom-nodes" && \
-    npm pkg set version="1.0.0"
+# Initialize npm project
+RUN npm init -y
+
+# Install build tools locally
+RUN npm install -g typescript gulp-cli @types/node
 
 # Clone and build FFmpeg node
-RUN git clone https://github.com/n8n-ninja/n8n-nodes-ffmpeg.git node_modules/n8n-nodes-ffmpeg && \
-    cd node_modules/n8n-nodes-ffmpeg && \
-    npm install && \
-    ./node_modules/.bin/tsc && \
-    ./node_modules/.bin/gulp build:icons && \
-    cd ../..
+WORKDIR /home/node/.n8n
+RUN git clone https://github.com/n8n-ninja/n8n-nodes-ffmpeg.git node_modules/n8n-nodes-ffmpeg
+WORKDIR /home/node/.n8n/node_modules/n8n-nodes-ffmpeg
+RUN npm install
+RUN npm install typescript gulp @types/node --save-dev
+RUN npx tsc
+RUN npx gulp build:icons || true
 
 # Clone and build ElevenLabs node
-RUN git clone https://github.com/n8n-ninja/n8n-nodes-elevenlabs.git node_modules/n8n-nodes-elevenlabs && \
-    cd node_modules/n8n-nodes-elevenlabs && \
-    npm install && \
-    ./node_modules/.bin/tsc && \
-    ./node_modules/.bin/gulp build:icons && \
-    cd ../..
+WORKDIR /home/node/.n8n
+RUN git clone https://github.com/n8n-ninja/n8n-nodes-elevenlabs.git node_modules/n8n-nodes-elevenlabs
+WORKDIR /home/node/.n8n/node_modules/n8n-nodes-elevenlabs
+RUN npm install
+RUN npm install typescript gulp @types/node --save-dev
+RUN npx tsc
+RUN npx gulp build:icons || true
 
-# Update main package.json to include the custom nodes
-RUN npm pkg set dependencies.n8n-nodes-ffmpeg="file:node_modules/n8n-nodes-ffmpeg" && \
-    npm pkg set dependencies.n8n-nodes-elevenlabs="file:node_modules/n8n-nodes-elevenlabs"
+# Return to .n8n directory
+WORKDIR /home/node/.n8n
 
 # Make sure all files have correct ownership
 USER root
