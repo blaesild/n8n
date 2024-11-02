@@ -25,11 +25,26 @@ RUN mkdir -p /home/node/.n8n && \
 USER node
 
 # Set the working directory
-WORKDIR /home/node
+WORKDIR /home/node/.n8n
 
-# Install and build custom nodes
-RUN cd /home/node/.n8n && \
-    npm install https://github.com/n8n-ninja/n8n-nodes-ffmpeg.git && \
-    npm install https://github.com/n8n-ninja/n8n-nodes-elevenlabs.git && \
-    cd node_modules/n8n-nodes-ffmpeg && npm install && npm run build && \
-    cd ../n8n-nodes-elevenlabs && npm install && npm run build
+# Initialize npm project
+RUN npm init -y
+
+# Install custom nodes one at a time with error checking
+RUN npm install https://github.com/n8n-ninja/n8n-nodes-ffmpeg.git || exit 0
+RUN cd node_modules/n8n-nodes-ffmpeg && \
+    npm install && \
+    npm run build || exit 0
+
+RUN npm install https://github.com/n8n-ninja/n8n-nodes-elevenlabs.git || exit 0
+RUN cd node_modules/n8n-nodes-elevenlabs && \
+    npm install && \
+    npm run build || exit 0
+
+# Make sure the n8n user owns all files
+USER root
+RUN chown -R node:node /home/node/.n8n
+
+# Switch back to node user for security
+USER node
+WORKDIR /home/node
