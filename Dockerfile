@@ -24,29 +24,27 @@ USER node
 # Set the working directory
 WORKDIR /home/node/.n8n
 
-# Initialize npm project
-RUN npm init -y
-
-# Install build tools locally
-RUN npm install -g typescript gulp-cli @types/node
+# Initialize npm project and install build tools locally
+RUN npm init -y && \
+    npm install typescript gulp-cli @types/node --save-dev
 
 # Clone and build FFmpeg node
 WORKDIR /home/node/.n8n
 RUN git clone https://github.com/n8n-ninja/n8n-nodes-ffmpeg.git node_modules/n8n-nodes-ffmpeg
 WORKDIR /home/node/.n8n/node_modules/n8n-nodes-ffmpeg
-RUN npm install
-RUN npm install typescript gulp @types/node --save-dev
-RUN npx tsc
-RUN npx gulp build:icons || true
+RUN npm install && \
+    npm install typescript gulp @types/node --save-dev && \
+    npx tsc && \
+    npx gulp build:icons || true
 
 # Clone and build ElevenLabs node
 WORKDIR /home/node/.n8n
 RUN git clone https://github.com/n8n-ninja/n8n-nodes-elevenlabs.git node_modules/n8n-nodes-elevenlabs
 WORKDIR /home/node/.n8n/node_modules/n8n-nodes-elevenlabs
-RUN npm install
-RUN npm install typescript gulp @types/node --save-dev
-RUN npx tsc
-RUN npx gulp build:icons || true
+RUN npm install && \
+    npm install typescript gulp @types/node --save-dev && \
+    npx tsc && \
+    npx gulp build:icons || true
 
 # Return to .n8n directory
 WORKDIR /home/node/.n8n
