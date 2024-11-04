@@ -1,27 +1,26 @@
-# Start with an Ubuntu-based n8n image
-FROM n8nio/n8n:ubuntu
+FROM ubuntu:20.04
 
-USER root
+# Install required packages
+RUN apt-get update && apt-get install -y \
+    curl \
+    gnupg \
+    ffmpeg \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Update and install FFmpeg
-RUN apt-get update && \
-    apt-get install -y ffmpeg && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && apt-get clean
 
-# Set up the custom nodes (optional)
-RUN mkdir -p /home/node/.n8n/nodes
+# Create n8n directory
+RUN mkdir -p /home/node/.n8n
+WORKDIR /home/node/.n8n
 
-# Set up ElevenLabs and FFmpeg nodes without unnecessary build steps
-WORKDIR /home/node/.n8n/nodes
-RUN npm install https://github.com/n8n-ninja/n8n-nodes-elevenlabs.git || true
-RUN npm install https://github.com/n8n-ninja/n8n-nodes-ffmpeg.git || true
+# Install n8n globally
+RUN npm install -g n8n
 
-# Set correct permissions for the node user
+# Set correct permissions
 RUN chown -R node:node /home/node/.n8n
-
-# Switch back to the node user
 USER node
 
-# Set the working directory back to the n8n directory
-WORKDIR /home/node
+# Default command to run n8n
+CMD ["n8n"]
