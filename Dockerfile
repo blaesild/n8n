@@ -13,14 +13,17 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 # Verify Node.js version to ensure it is 20 or above
 RUN node -v
 
-# Create a directory for n8n and set permissions
+# Create a new user named 'node' and set up the home directory
+RUN useradd -m -s /bin/bash node
+
+# Create a directory for n8n and set permissions for the 'node' user
 RUN mkdir -p /home/node/.n8n && \
     chown -R node:node /home/node/.n8n
 
-# Install n8n globally
+# Install n8n globally as root
 RUN npm install -g n8n
 
-# Set the correct permissions and switch to the node user
+# Switch to the node user for running n8n
 USER node
 WORKDIR /home/node
 
