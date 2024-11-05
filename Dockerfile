@@ -1,5 +1,8 @@
 FROM ubuntu:20.04
 
+# The encryption key must be the same as what you set in Render's environment variables
+ENV N8N_ENCRYPTION_KEY=$1IC+TTbN+Dn9+Vk0Pi4OepKCy4WFNsVYEJbjUV+MiaU=
+
 # Update and install system packages
 RUN apt-get update && \
     apt-get install -y curl gnupg ffmpeg && \
