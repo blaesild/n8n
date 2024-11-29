@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import * as assert from 'assert/strict';
 import { setMaxListeners } from 'events';
+import { omit } from 'lodash';
 import get from 'lodash/get';
 import type {
 	ExecutionBaseError,
@@ -58,6 +59,7 @@ import {
 	cleanRunData,
 	recreateNodeExecutionStack,
 	handleCycles,
+	filterDisabledNodes,
 } from './PartialExecutionUtils';
 
 export class WorkflowExecute {
@@ -319,8 +321,9 @@ export class WorkflowExecute {
 	runPartialWorkflow2(
 		workflow: Workflow,
 		runData: IRunData,
+		pinData: IPinData = {},
+		dirtyNodeNames: string[] = [],
 		destinationNodeName?: string,
-		pinData?: IPinData,
 	): PCancelable<IRun> {
 		// TODO: Refactor the call-site to make `destinationNodeName` a required
 		// after removing the old partial execution flow.
@@ -345,11 +348,12 @@ export class WorkflowExecute {
 
 		// 2. Find the Subgraph
 		const graph = DirectedGraph.fromWorkflow(workflow);
-		const subgraph = findSubgraph({ graph, destination, trigger });
+		const subgraph = findSubgraph({ graph: filterDisabledNodes(graph), destination, trigger });
 		const filteredNodes = subgraph.getNodes();
 
 		// 3. Find the Start Nodes
-		let startNodes = findStartNodes({ graph: subgraph, trigger, destination, runData });
+		runData = omit(runData, dirtyNodeNames);
+		let startNodes = findStartNodes({ graph: subgraph, trigger, destination, runData, pinData });
 
 		// 4. Detect Cycles
 		// 5. Handle Cycles
@@ -916,7 +920,6 @@ export class WorkflowExecute {
 		let nodeSuccessData: INodeExecutionData[][] | null | undefined;
 		let runIndex: number;
 		let startTime: number;
-		let taskData: ITaskData;
 
 		if (this.runExecutionData.startData === undefined) {
 			this.runExecutionData.startData = {};
@@ -949,7 +952,7 @@ export class WorkflowExecute {
 			const returnPromise = (async () => {
 				try {
 					if (!this.additionalData.restartExecutionId) {
-						await this.executeHook('workflowExecuteBefore', [workflow]);
+						await this.executeHook('workflowExecuteBefore', [workflow, this.runExecutionData]);
 					}
 				} catch (error) {
 					const e = error as unknown as ExecutionBaseError;
@@ -1446,13 +1449,13 @@ export class WorkflowExecute {
 						this.runExecutionData.resultData.runData[executionNode.name] = [];
 					}
 
-					taskData = {
+					const taskData: ITaskData = {
 						hints: executionHints,
 						startTime,
 						executionTime: new Date().getTime() - startTime,
 						source: !executionData.source ? [] : executionData.source.main,
 						metadata: executionData.metadata,
-						executionStatus: 'success',
+						executionStatus: this.runExecutionData.waitTill ? 'waiting' : 'success',
 					};
 
 					if (executionError !== undefined) {

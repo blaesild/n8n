@@ -4,7 +4,7 @@ import { ApplicationError } from 'n8n-workflow';
 import { Service } from 'typedi';
 import type WebSocket from 'ws';
 
-import { Time } from '@/constants';
+import { Time, WsStatusCodes } from '@/constants';
 import { Logger } from '@/logging/logger.service';
 
 import { DefaultTaskRunnerDisconnectAnalyzer } from './default-task-runner-disconnect-analyzer';
@@ -21,6 +21,8 @@ function heartbeat(this: WebSocket) {
 	this.isAlive = true;
 }
 
+type WsStatusCode = (typeof WsStatusCodes)[keyof typeof WsStatusCodes];
+
 @Service()
 export class TaskRunnerWsServer {
 	runnerConnections: Map<TaskRunner['id'], WebSocket> = new Map();
@@ -33,7 +35,9 @@ export class TaskRunnerWsServer {
 		private disconnectAnalyzer: DefaultTaskRunnerDisconnectAnalyzer,
 		private readonly taskTunnersConfig: TaskRunnersConfig,
 		private readonly runnerLifecycleEvents: RunnerLifecycleEvents,
-	) {
+	) {}
+
+	start() {
 		this.startHeartbeatChecks();
 	}
 
@@ -47,7 +51,11 @@ export class TaskRunnerWsServer {
 		this.heartbeatTimer = setInterval(() => {
 			for (const [runnerId, connection] of this.runnerConnections.entries()) {
 				if (!connection.isAlive) {
-					void this.removeConnection(runnerId, 'failed-heartbeat-check');
+					void this.removeConnection(
+						runnerId,
+						'failed-heartbeat-check',
+						WsStatusCodes.CloseNoStatus,
+					);
 					this.runnerLifecycleEvents.emit('runner:failed-heartbeat-check');
 					return;
 				}
@@ -57,17 +65,13 @@ export class TaskRunnerWsServer {
 		}, heartbeatInterval * Time.seconds.toMilliseconds);
 	}
 
-	async shutdown() {
+	async stop() {
 		if (this.heartbeatTimer) {
 			clearInterval(this.heartbeatTimer);
 			this.heartbeatTimer = undefined;
 		}
 
-		await Promise.all(
-			Array.from(this.runnerConnections.keys()).map(
-				async (id) => await this.removeConnection(id, 'shutting-down'),
-			),
-		);
+		await this.stopConnectedRunners();
 	}
 
 	setDisconnectAnalyzer(disconnectAnalyzer: DisconnectAnalyzer) {
@@ -114,7 +118,7 @@ export class TaskRunnerWsServer {
 						this.sendMessage.bind(this, id) as MessageCallback,
 					);
 
-					this.logger.info(`Runner "${message.name}" (${id}) has been registered`);
+					this.logger.info(`Registered runner "${message.name}" (${id}) `);
 					return;
 				}
 
@@ -141,7 +145,11 @@ export class TaskRunnerWsServer {
 		);
 	}
 
-	async removeConnection(id: TaskRunner['id'], reason: DisconnectReason = 'unknown') {
+	async removeConnection(
+		id: TaskRunner['id'],
+		reason: DisconnectReason = 'unknown',
+		code: WsStatusCode = WsStatusCodes.CloseNormal,
+	) {
 		const connection = this.runnerConnections.get(id);
 		if (connection) {
 			const disconnectError = await this.disconnectAnalyzer.toDisconnectError({
@@ -150,12 +158,24 @@ export class TaskRunnerWsServer {
 				heartbeatInterval: this.taskTunnersConfig.heartbeatInterval,
 			});
 			this.taskBroker.deregisterRunner(id, disconnectError);
-			connection.close();
+			this.logger.debug(`Deregistered runner "${id}"`);
+			connection.close(code);
 			this.runnerConnections.delete(id);
 		}
 	}
 
 	handleRequest(req: TaskRunnerServerInitRequest, _res: TaskRunnerServerInitResponse) {
 		this.add(req.query.id, req.ws);
+	}
+
+	private async stopConnectedRunners() {
+		// TODO: We should give runners some time to finish their tasks before
+		// shutting them down
+		await Promise.all(
+			Array.from(this.runnerConnections.keys()).map(
+				async (id) =>
+					await this.removeConnection(id, 'shutting-down', WsStatusCodes.CloseGoingAway),
+			),
+		);
 	}
 }
