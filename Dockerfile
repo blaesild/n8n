@@ -23,8 +23,8 @@ RUN mkdir -p /home/node/.n8n && \
 # Install n8n globally as root
 RUN npm install -g n8n
 
-# Install the n8n-nodes-browserless package globally
-RUN npm install -g n8n-nodes-browserless
+# Install fluent-ffmpeg globally
+RUN npm install -g fluent-ffmpeg
 
 # Switch to the node user for running n8n
 USER node
