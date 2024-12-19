@@ -26,6 +26,8 @@ RUN npm install -g n8n
 # Install fluent-ffmpeg globally
 RUN npm install -g fluent-ffmpeg
 
+RUN apt-get update && apt-get install -y libimage-exiftool-perl
+
 # Switch to the node user for running n8n
 USER node
 WORKDIR /home/node
