@@ -86,7 +86,6 @@ export interface FrontendSettings {
 		};
 	};
 	publicApi: {
-		apiKeysPerUserLimit: number;
 		enabled: boolean;
 		latestVersion: number;
 		path: string;
@@ -181,5 +180,10 @@ export interface FrontendSettings {
 	easyAIWorkflowOnboarded: boolean;
 	partialExecution: {
 		version: 1 | 2;
+	};
+	insights: {
+		enabled: boolean;
+		summary: boolean;
+		dashboard: boolean;
 	};
 }
