@@ -57,16 +57,19 @@ import {
 	AI_CODE_TOOL_LANGCHAIN_NODE_TYPE,
 	AI_WORKFLOW_TOOL_LANGCHAIN_NODE_TYPE,
 	HUMAN_IN_THE_LOOP_CATEGORY,
+	EVALUATION_TRIGGER,
 } from '@/constants';
 import { useI18n } from '@/composables/useI18n';
 import { useNodeTypesStore } from '@/stores/nodeTypes.store';
 import type { SimplifiedNodeType } from '@/Interface';
 import type { INodeTypeDescription, Themed } from 'n8n-workflow';
-import { NodeConnectionTypes } from 'n8n-workflow';
+import { EVALUATION_TRIGGER_NODE_TYPE, NodeConnectionTypes } from 'n8n-workflow';
 import type { NodeConnectionType } from 'n8n-workflow';
 import { useTemplatesStore } from '@/stores/templates.store';
 import type { BaseTextKey } from '@/plugins/i18n';
 import { camelCase } from 'lodash-es';
+import { useSettingsStore } from '@/stores/settings.store';
+import { usePostHog } from '@/stores/posthog.store';
 
 export interface NodeViewItemSection {
 	key: string;
@@ -110,25 +113,29 @@ interface NodeView {
 	items: NodeViewItem[];
 }
 
+function getNodeView(node: INodeTypeDescription) {
+	return {
+		key: node.name,
+		type: 'node',
+		properties: {
+			group: [],
+			name: node.name,
+			displayName: node.displayName,
+			title: node.displayName,
+			description: node.description,
+			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+			icon: node.icon!,
+			iconUrl: node.iconUrl,
+		},
+	};
+}
+
 function getAiNodesBySubcategory(nodes: INodeTypeDescription[], subcategory: string) {
 	return nodes
 		.filter(
 			(node) => !node.hidden && node.codex?.subcategories?.[AI_SUBCATEGORY]?.includes(subcategory),
 		)
-		.map((node) => ({
-			key: node.name,
-			type: 'node',
-			properties: {
-				group: [],
-				name: node.name,
-				displayName: node.displayName,
-				title: node.displayName,
-				description: node.description,
-				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-				icon: node.icon!,
-				iconUrl: node.iconUrl,
-			},
-		}))
+		.map(getNodeView)
 		.sort((a, b) => a.properties.displayName.localeCompare(b.properties.displayName));
 }
 
@@ -136,6 +143,16 @@ export function AIView(_nodes: SimplifiedNodeType[]): NodeView {
 	const i18n = useI18n();
 	const nodeTypesStore = useNodeTypesStore();
 	const templatesStore = useTemplatesStore();
+	const posthogStore = usePostHog();
+
+	const isEvaluationVariantEnabled = posthogStore.isVariantEnabled(
+		EVALUATION_TRIGGER.name,
+		EVALUATION_TRIGGER.variant,
+	);
+
+	const evaluationNodeStore = nodeTypesStore.getNodeType('n8n-nodes-base.evaluation');
+	const evaluationNode =
+		isEvaluationVariantEnabled && evaluationNodeStore ? [getNodeView(evaluationNodeStore)] : [];
 
 	const chainNodes = getAiNodesBySubcategory(nodeTypesStore.allLatestNodeTypes, AI_CATEGORY_CHAINS);
 	const agentNodes = getAiNodesBySubcategory(nodeTypesStore.allLatestNodeTypes, AI_CATEGORY_AGENTS);
@@ -144,6 +161,10 @@ export function AIView(_nodes: SimplifiedNodeType[]): NodeView {
 	websiteCategoryURLParams.append('utm_user_role', 'AdvancedAI');
 	const websiteCategoryURL =
 		templatesStore.constructTemplateRepositoryURL(websiteCategoryURLParams);
+
+	const askAiEnabled = useSettingsStore().isAskAiEnabled;
+	const aiTransformNode = nodeTypesStore.getNodeType(AI_TRANSFORM_NODE_TYPE);
+	const transformNode = askAiEnabled && aiTransformNode ? [getNodeView(aiTransformNode)] : [];
 
 	return {
 		value: AI_NODE_CREATOR_VIEW,
@@ -167,6 +188,8 @@ export function AIView(_nodes: SimplifiedNodeType[]): NodeView {
 			},
 			...agentNodes,
 			...chainNodes,
+			...transformNode,
+			...evaluationNode,
 			{
 				key: AI_OTHERS_NODE_CREATOR_VIEW,
 				type: 'view',
@@ -321,6 +344,26 @@ export function AINodesView(_nodes: SimplifiedNodeType[]): NodeView {
 
 export function TriggerView() {
 	const i18n = useI18n();
+	const posthogStore = usePostHog();
+	const isEvaluationVariantEnabled = posthogStore.isVariantEnabled(
+		EVALUATION_TRIGGER.name,
+		EVALUATION_TRIGGER.variant,
+	);
+
+	const evaluationTriggerNode = isEvaluationVariantEnabled
+		? {
+				key: EVALUATION_TRIGGER_NODE_TYPE,
+				type: 'node',
+				category: [CORE_NODES_CATEGORY],
+				properties: {
+					group: [],
+					name: EVALUATION_TRIGGER_NODE_TYPE,
+					displayName: 'Evaluation Trigger',
+					description: 'Run a dataset through your workflow to test performance',
+					icon: 'fa:check-double',
+				},
+			}
+		: null;
 
 	const view: NodeView = {
 		value: TRIGGER_NODE_CREATOR_VIEW,
@@ -414,6 +457,7 @@ export function TriggerView() {
 					icon: 'fa:comments',
 				},
 			},
+			...(evaluationTriggerNode ? [evaluationTriggerNode] : []),
 			{
 				type: 'subcategory',
 				key: OTHER_TRIGGER_NODES_SUBCATEGORY,

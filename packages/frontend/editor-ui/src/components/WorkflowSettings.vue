@@ -17,7 +17,7 @@ import {
 import type { WorkflowSettings } from 'n8n-workflow';
 import { deepCopy } from 'n8n-workflow';
 import { useSettingsStore } from '@/stores/settings.store';
-import { useRootStore } from '@/stores/root.store';
+import { useRootStore } from '@n8n/stores/useRootStore';
 import { useWorkflowsEEStore } from '@/stores/workflows.ee.store';
 import { useWorkflowsStore } from '@/stores/workflows.store';
 import { createEventBus } from '@n8n/utils/event-bus';
@@ -371,6 +371,9 @@ const saveSettings = async () => {
 	void externalHooks.run('workflowSettings.saveSettings', { oldSettings });
 	telemetry.track('User updated workflow settings', {
 		workflow_id: workflowsStore.workflowId,
+		// null and undefined values are removed from the object, but we need the keys to be there
+		time_saved: workflowSettings.value.timeSavedPerExecution ?? '',
+		error_workflow: workflowSettings.value.errorWorkflow ?? '',
 	});
 };
 
